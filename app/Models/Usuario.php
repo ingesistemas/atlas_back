@@ -6,19 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
-class Role extends Model
+class Usuario extends Model
 {
     use LogsActivity;
-    protected $table = 'roles';
+    protected $table = 'usuarios';
+    protected $connection = 'empresa_dinamica';
     protected $fillable = [
-        'rol',
+        'email',
         'activo'
     ];
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['rol', 'activo'])
+        ->logOnly(['email', 'activo'])
         ->logOnlyDirty();
     }
 }
