@@ -7,6 +7,11 @@ use App\Models\Role;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 use App\Services\EmpresaConnectionService;
+use App\Http\Requests\UsuarioRequest;
+use App\Models\Ciudad;
+use App\Models\Empresa;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class UsuarioController extends Controller
@@ -16,52 +21,99 @@ class UsuarioController extends Controller
      */
     public function consultar(Request $request)
     {
-        $nit = $request->nit;
-        EmpresaConnectionService::conectarPorNit($nit);
+        $usuarios = Usuario::select('id', 'email', 'id_rol', 'activo', 'created_at')
+            ->get();;
+       
         return response()->json([
             'error' => false,
-            'data' => Usuario::all()
+            'data' => $usuarios
         ]);
     }
 
     public function ingresar(Request $request)
     {   
-        $nit = $request->nit;
-        $email = $request->email;
-        $clave = $request->clave;
-        
-        EmpresaConnectionService::conectarPorNit($nit);
-        $usuario = Usuario::select('id', 'email')
-            ->where('email', $email)
-            ->where('clave', $clave)
-            ->first();
+        try{
+            $nit = $request->nit;
+            $email = $request->email;
+            $clave = $request->clave;
+            EmpresaConnectionService::conectarPorNit($nit);
+            $usuario = Usuario::select('id', 'email', 'atlas', 'id_rol')
+                ->where('email', $email)
+                ->where('clave', $clave)
+                ->first();
+            if(!$usuario){
+                return response()->json([
+                    'error' => true,
+                    'mensaje' => 'Acceso denegado.',
+                    'data' => []
+                ]);
+            }else{
+                // 3️⃣ Consultar modelo Empresa en la DB principal
+                $empresa = Empresa::where('nit', $nit)->first();
 
-        if(!$usuario){
+                $nombreCiudad = Ciudad::where('id', $empresa->id_ciudad)
+                    ->value('ciudad');
+                if(!$empresa){
+                    return response()->json([
+                        'error' => true,
+                        'mensaje' => 'El NIT ingresado no está autorizado para ingresar al sistema.',
+                        'data' => []
+                    ]);
+                }else{
+                    // 3️⃣ Crear token JWT
+                    $token = JWTAuth::claims([
+                        'nit' => $nit,
+                        'rol' => $usuario->rol,
+                        'id_ciudad' => $empresa->id_ciudad
+                    ])->fromUser($usuario);
+                    // 4️⃣ Respuesta al frontend
+                    $usuario->id_ciudad = $empresa->id_ciudad;
+                    $usuario->empresa = $empresa->nombre;
+                    $usuario->ciudad = $nombreCiudad;
+                    
+                    return response()->json([
+                        'error' => false,
+                        'token'   => $token,
+                        'mensaje' => 'Bienvenido a Atlas APS.',
+                        'user'    => $usuario,
+                    ]);
+                }
+            }
+        }catch(Exception $e){
             return response()->json([
                 'error' => true,
-                'mensaje' => 'Acceso denegado.',
+                'mensaje' => 'Error'. $e,
                 'data' => []
-            ]);
-        }else{
-            return response()->json([
-                'error' => false,
-                'mensaje' => 'Bienvenido a Atlas.',
-                'data' => $usuario
             ]);
         }
     }
-    public function crear(Request $request)
+
+    public function crear(UsuarioRequest $request)
     {
         try{
-            $role = Role::create([
-            'rol' => $request->rol
-            ]);
+            $data = $request->validated();
+            if($data){
+                if (Usuario::where('email', $request->email)->exists()) {
+                    return response()->json([
+                        'error' => true,
+                        'mensaje' => 'El correo electrónico ingresado ya se encuentra registrado.'
+                    ], 422);
+                }else{
+                    $usuario = Usuario::create([
+                        'email' => $request->email,
+                        'clave' => $request->clave
+                    ]);
 
-            return response()->json([
-                'error' => false,
-                'mensaje' => 'El registro fue creado correctamente.',
-                'data' => $role
-            ]);
+                    return response()->json([
+                        'error' => false,
+                        'mensaje' => 'El registro fue creado correctamente.',
+                        'data' => $usuario
+                    ]);
+                }
+
+                
+            }
+            
         }catch(Exception $e){
             return response()->json([
                 'error' => true,
@@ -79,43 +131,67 @@ class UsuarioController extends Controller
 
     public function editar(Request $request, string $id)
     {
-        $rol = Role::find($id);
-        if(!$rol){
+        
+        $usuario = Usuario::find($id);
+        if(!$usuario){
             return response()->json([
                 'error' => true,
                 'mensaje' => 'No se encontró el registro que deseas editar.',
                 'data' => []
             ]);
         }else{
-            $rol->rol = $request->rol;
-            $rol->save();
+            if (Usuario::where('email', $request->email)
+                ->where('id', '!=', $id)
+                ->exists()) {
+                return response()->json([
+                    'error' => true,
+                    'mensaje' => 'El correo electrónico ingresado ya se encuentra registrado.'
+                ], 422);
+            }else{
+                $usuario->email = $request->email;
+                $usuario->clave = $request->clave;
+                $usuario->save();
 
-            return response()->json([
-                'error' => false,
-                'mensaje' => 'El registro fue editado correctamente.',
-                'data' => $rol
-            ]);
+                return response()->json([
+                    'error' => false,
+                    'mensaje' => 'El registro fue editado correctamente.',
+                    'data' => $usuario
+                ]);
+            }    
         }
     }
 
     public function estado(Request $request, string $id)
     {
-        $rol = Role::find($id);
-        if(!$rol){
+        $usuario = Usuario::find($id);
+        if(!$usuario){
             return response()->json([
                 'error' => true,
                 'mensaje' => 'No se encontró el registro que deseas editar su estado.',
                 'data' => []
             ]);
         }else{
-             $rol->activo = $rol->activo == 1 ? 0 : 1;
-            $rol->save();
+            $usuario->activo = $usuario->activo == 1 ? 0 : 1;
+            $usuario->save();
 
             return response()->json([
                 'error' => false,
                 'mensaje' => 'El registro fue editado en su estado correctamente.',
-                'data' => $rol
+                'data' => $usuario
             ]);
         }
+    }
+
+    public function testDb(Request $request)
+    {
+         $payload = JWTAuth::parseToken()->getPayload();
+        $nit = $payload->get('nit');
+
+        EmpresaConnectionService::conectarPorNit($nit);
+
+        return response()->json([
+            'error' => false,
+            'data' => Usuario::count()
+        ]);
     }
 }

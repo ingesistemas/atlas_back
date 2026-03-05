@@ -3,29 +3,31 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
-class Role extends Model
+class Localidade extends Model
 {
     use LogsActivity;
-    protected $table = 'roles';
+    protected $table = 'localidades';
     protected $connection = 'mysql';
     protected $fillable = [
-        'rol',
-        'activo'
+        'localidad',
+        'id_ciudad',
+        'p_cardinal'
     ];
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['rol', 'activo'])
+        ->logOnly(['localidad', 'p_cardinal', 'id_ciudad'])
         ->logOnlyDirty();
     }
 
-    public function usuarios(): HasMany
+    public function ciudad(): BelongsTo
     {
-        return $this->hasMany(Usuario::class, 'id_rol', 'id');
+        return $this->belongsTo(Ciudad::class, 'id_ciudad', 'id');
     }
 }

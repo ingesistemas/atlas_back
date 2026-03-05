@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RolRequest;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Exception;
@@ -20,18 +21,21 @@ class RoleController extends Controller
         ]);
     }
 
-    public function crear(Request $request)
+    public function crear(RolRequest $request)
     {
         try{
-            $role = Role::create([
-            'rol' => $request->rol
-            ]);
+            $data = $request->validated();
+            if($data){
+                $role = Role::create([
+                    'rol' => $request->rol
+                ]);
 
-            return response()->json([
-                'error' => false,
-                'mensaje' => 'El registro fue creado correctamente.',
-                'data' => $role
-            ]);
+                return response()->json([
+                    'error' => false,
+                    'mensaje' => 'El registro fue creado correctamente.',
+                    'data' => $role
+                ]);
+            }
         }catch(Exception $e){
             return response()->json([
                 'error' => true,
@@ -47,25 +51,37 @@ class RoleController extends Controller
         //
     }
 
-    public function editar(Request $request, string $id)
+    public function editar(RolRequest $request, string $id)
     {
-        $rol = Role::find($id);
-        if(!$rol){
+        try{
+            $data = $request->validated();
+            if($data){
+                $rol = Role::find($id);
+                if(!$rol){
+                    return response()->json([
+                        'error' => true,
+                        'mensaje' => 'No se encontró el registro que deseas editar.',
+                        'data' => []
+                    ]);
+                }else{
+                    $rol->rol = $request->rol;
+                    $rol->save();
+
+                    return response()->json([
+                        'error' => false,
+                        'mensaje' => 'El registro fue editado correctamente.',
+                        'data' => $rol
+                    ]);
+                }
+            }
+        }catch(Exception $e){
             return response()->json([
                 'error' => true,
-                'mensaje' => 'No se encontró el registro que deseas editar.',
+                'mensaje' => 'Error'. $e,
                 'data' => []
             ]);
-        }else{
-            $rol->rol = $request->rol;
-            $rol->save();
-
-            return response()->json([
-                'error' => false,
-                'mensaje' => 'El registro fue editado correctamente.',
-                'data' => $rol
-            ]);
         }
+        
     }
 
     public function estado(Request $request, string $id)

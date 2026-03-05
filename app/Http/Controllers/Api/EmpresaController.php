@@ -57,10 +57,6 @@ class EmpresaController extends Controller
         }
     }
 
-    public function show(string $id)
-    {
-        //
-    }
 
     public function editar(EmpresaRequest $request, string $id)
     {
