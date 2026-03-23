@@ -10,6 +10,7 @@ class Empresa extends Model
 {
     use LogsActivity;
     protected $table = 'empresas';
+    protected $connection = 'mysql';
     protected $fillable = [
         'nit',
         'dig_ver',

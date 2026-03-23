@@ -19,11 +19,23 @@ class LocalidadController extends Controller
      */
     public function consultar(Request $request)
     {
+        $id_ficha = $request->header('X-Ficha-Tecnica');
         $datosUsuario = JWTAuth::parseToken()->getPayload();
         $id_ciudad = $datosUsuario->get('id_ciudad');
+        $datos = Localidade::where('id_ciudad', $id_ciudad)
+                ->with(['ficha','ciudad']);;
+
+        if (!empty($id_ficha)) {
+            $datos->where('id_ficha_tecnica', $id_ficha);
+        }else{
+            $datos->where(function ($query) {
+                $query->whereNull('id_ficha_tecnica')
+                    ->orWhere('id_ficha_tecnica', '');
+            });
+        }
         return response()->json([
-            'error' => $id_ciudad,
-            'data' => Localidade::where('id_ciudad', $id_ciudad)->get()
+            'error' => false,
+            'data' => $datos->get()
         ]);
     }
 
@@ -32,10 +44,12 @@ class LocalidadController extends Controller
         try{
             $data = $request->validated();
             if($data){
+                $id_ficha = $request->header('X-Ficha-Tecnica');
                 $localidad = Localidade::create([
                     'localidad' => $request->localidad,
                     'p_cardinal'=> $request->p_cardinal,
-                    'id_ciudad' => $request->id_ciudad
+                    'id_ciudad' => $request->id_ciudad,
+                    'id_ficha_tecnica' => $id_ficha
                 ]);
 
                 return response()->json([
@@ -59,9 +73,10 @@ class LocalidadController extends Controller
         //
     }
 
-    public function editar(LocalidadRequest $request, Localidade $localidad)
+    public function editar(LocalidadRequest $request,  $id)
     {
         try{
+            $localidad = Localidade::findOrFail($id);
             $localidad->update($request->validated());
             return response()->json([
                 'error' => false,
@@ -75,6 +90,27 @@ class LocalidadController extends Controller
                 'data' => []
             ]);
         }        
+    }
+
+    public function estado(Request $request, string $id)
+    {
+        $localidad = Localidade::find($id);
+        if(!$localidad){
+            return response()->json([
+                'error' => true,
+                'mensaje' => 'No se encontró el registro que deseas editar su estado.',
+                'data' => []
+            ]);
+        }else{
+            $localidad->activo = $localidad->activo == 1 ? 0 : 1;
+            $localidad->save();
+
+            return response()->json([
+                'error' => false,
+                'mensaje' => 'El registro fue editado en su estado correctamente.',
+                'data' => $localidad
+            ]);
+        }
     }
 
 }

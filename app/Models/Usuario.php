@@ -57,4 +57,14 @@ class Usuario extends Model implements JWTSubject
             ->value('rol');
     }
 
+    public function fichasTecnicas()
+{
+    return $this->belongsToMany(
+        FichaTecnica::class,
+        'ficha_usuarios',
+        'id_usuario',
+        'id_ficha_tecnica'
+    );
+}
+
 }

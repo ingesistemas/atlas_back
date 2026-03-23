@@ -9,6 +9,7 @@ use Spatie\Activitylog\LogOptions;
 class Ciudad extends Model
 {
     protected $table = 'ciudades';
+    protected $connection = 'mysql';
     protected $fillable = [
         'id_dep',
         'ciudad',

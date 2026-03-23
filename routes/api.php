@@ -59,6 +59,7 @@ Route::middleware('empresa.jwt')->group(function () {
         Route::get('/', [LocalidadController::class, 'consultar']);
         Route::post('/', [LocalidadController::class, 'crear']);
         Route::put('/{localidad}', [LocalidadController::class, 'editar']);
+        Route::delete('/{id}', [LocalidadController::class, 'estado']);
     });
 
     Route::prefix('empresas')->group(function () {

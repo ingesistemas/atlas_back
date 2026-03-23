@@ -12,22 +12,30 @@ class Localidade extends Model
 {
     use LogsActivity;
     protected $table = 'localidades';
-    protected $connection = 'mysql';
+    protected $connection = 'empresa_dinamica';
+    
     protected $fillable = [
         'localidad',
         'id_ciudad',
-        'p_cardinal'
+        'p_cardinal',
+        'id_ficha_tecnica',
+        'activo'
     ];
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['localidad', 'p_cardinal', 'id_ciudad'])
+        ->logOnly(['localidad', 'p_cardinal', 'id_ficha_tecnica', 'activo', 'id_ciudad'])
         ->logOnlyDirty();
     }
 
     public function ciudad(): BelongsTo
     {
         return $this->belongsTo(Ciudad::class, 'id_ciudad', 'id');
+    }
+
+    public function ficha(): BelongsTo
+    {
+        return $this->belongsTo(FichaTecnica::class, 'id_ficha_tecnica', 'id');
     }
 }

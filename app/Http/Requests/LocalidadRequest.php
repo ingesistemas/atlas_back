@@ -27,7 +27,8 @@ class LocalidadRequest extends FormRequest
         $datosUsuario = JWTAuth::parseToken()->getPayload();
 
         $this->merge([
-            'id_ciudad' => $datosUsuario->get('id_ciudad')
+            'id_ciudad' => $datosUsuario->get('id_ciudad'),
+            'id_ficha_tecnica' => $this->header('X-Ficha-Tecnica')
         ]);
 
         return [
@@ -35,12 +36,28 @@ class LocalidadRequest extends FormRequest
                 'required',
                 'string',
                 'max:30',
-                Rule::unique('localidades', 'localidad')->ignore($id),
+                Rule::unique('empresa_dinamica.localidades', 'localidad')
+                ->where(function ($query) {
+
+                    $query->where('id_ciudad', $this->id_ciudad);
+
+                    if ($this->id_ficha_tecnica) {
+                        $query->where('id_ficha_tecnica', $this->id_ficha_tecnica);
+                    } else {
+                        $query->whereNull('id_ficha_tecnica');
+                    }
+
+                })
+                ->ignore($id),
             ],
             'p_cardinal' => [
                 'required',
                 'string',
                 'max:30'
+            ],
+            'id_ficha_tecnica' => [
+                'string',
+                'nullable'
             ],
             'id_ciudad' => [
                 'required',
@@ -58,7 +75,7 @@ class LocalidadRequest extends FormRequest
             'localidad.required'   => 'Falta ingresar el nombre de la localidad.',
             'localidad.unique' => 'Esta localidad ya se encuentra registrado en el sistema.',
             'id_ciudad.required'   => 'Falta ingresar la ciudad a la cual pertenece la localidad.',
-            'id_ciudad.exists' => $id_ciudad.'La ciudad no se encuentra registrada en el sistema.',
+            'id_ciudad.exists' => 'La ciudad no se encuentra registrada en el sistema.',
         ];
     }
 
