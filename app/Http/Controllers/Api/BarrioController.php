@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\LocalidadRequest;
+use App\Http\Requests\BarrioRequest;
 use App\Http\Requests\RolRequest;
+use App\Models\Barrio;
 use App\Models\Localidade;
 use App\Models\Role;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-class LocalidadController extends Controller
+class BarrioController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -22,17 +23,21 @@ class LocalidadController extends Controller
         $id_ficha = $request->header('X-Ficha-Tecnica');
         $datosUsuario = JWTAuth::parseToken()->getPayload();
         $id_ciudad = $datosUsuario->get('id_ciudad');
-        $datos = Localidade::where('id_ciudad', $id_ciudad)
-                ->with(['ficha','ciudad']);
+        $datos = Barrio::where('id_ficha_tecnica', $id_ficha)
+            ->whereHas('localidad', function ($query) use ($id_ciudad) {
+                $query->where('id_ciudad', $id_ciudad);
+            })
+            ->with(['localidad', 'ficha']);
 
         if (!empty($id_ficha)) {
             $datos->where('id_ficha_tecnica', $id_ficha);
-        }else{
+        } else {
             $datos->where(function ($query) {
                 $query->whereNull('id_ficha_tecnica')
                     ->orWhere('id_ficha_tecnica', '');
             });
         }
+
         return response()->json([
             'error' => false,
             'data' => $datos->get(),
@@ -40,23 +45,23 @@ class LocalidadController extends Controller
         ]);
     }
 
-    public function crear(LocalidadRequest $request)
+    public function crear(BarrioRequest $request)
     {
         try{
             $data = $request->validated();
             if($data){
                 $id_ficha = $request->header('X-Ficha-Tecnica');
-                $localidad = Localidade::create([
-                    'localidad' => $request->localidad,
-                    'p_cardinal'=> $request->p_cardinal,
-                    'id_ciudad' => $request->id_ciudad,
-                    'id_ficha_tecnica' => $id_ficha
+                $barrio = Barrio::create([
+                    'barrio' => $request->barrio,
+                    'id_localidad' => $request->id_localidad,
+                    'id_ficha_tecnica' => $id_ficha,
+                    'alerta' => $request->alerta
                 ]);
 
                 return response()->json([
                     'error' => false,
                     'mensaje' => 'El registro fue creado correctamente.',
-                    'data' => $localidad
+                    'data' => $barrio
                 ]);
             }
         }catch(Exception $e){
@@ -74,15 +79,15 @@ class LocalidadController extends Controller
         //
     }
 
-    public function editar(LocalidadRequest $request,  $id)
+    public function editar(BarrioRequest $request,  $id)
     {
         try{
-            $localidad = Localidade::findOrFail($id);
-            $localidad->update($request->validated());
+            $barrio = Barrio::findOrFail($id);
+            $barrio->update($request->validated());
             return response()->json([
                 'error' => false,
                 'mensaje' => 'El registro fue editado correctamente.',
-                'data' => $localidad
+                'data' => $barrio
             ]);
         }catch(Exception $e){
             return response()->json([
@@ -95,21 +100,21 @@ class LocalidadController extends Controller
 
     public function estado(Request $request, string $id)
     {
-        $localidad = Localidade::find($id);
-        if(!$localidad){
+        $barrio = Barrio::find($id);
+        if(!$barrio){
             return response()->json([
                 'error' => true,
                 'mensaje' => 'No se encontró el registro que deseas editar su estado.',
                 'data' => []
             ]);
         }else{
-            $localidad->activo = $localidad->activo == 1 ? 0 : 1;
-            $localidad->save();
+            $barrio->activo = $barrio->activo == 1 ? 0 : 1;
+            $barrio->save();
 
             return response()->json([
                 'error' => false,
                 'mensaje' => 'El registro fue editado en su estado correctamente.',
-                'data' => $localidad
+                'data' => $barrio
             ]);
         }
     }

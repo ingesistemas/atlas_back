@@ -1,4 +1,6 @@
 <?php
+
+use App\Http\Controllers\Api\BarrioController;
 use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\EmpresaController;
@@ -60,6 +62,13 @@ Route::middleware('empresa.jwt')->group(function () {
         Route::post('/', [LocalidadController::class, 'crear']);
         Route::put('/{localidad}', [LocalidadController::class, 'editar']);
         Route::delete('/{id}', [LocalidadController::class, 'estado']);
+    });
+
+    Route::prefix('barrios')->group(function () {
+        Route::get('/', [BarrioController::class, 'consultar']);
+        Route::post('/', [BarrioController::class, 'crear']);
+        Route::put('/{localidad}', [BarrioController::class, 'editar']);
+        Route::delete('/{id}', [BarrioController::class, 'estado']);
     });
 
     Route::prefix('empresas')->group(function () {
